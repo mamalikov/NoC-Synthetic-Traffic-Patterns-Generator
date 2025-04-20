@@ -1,0 +1,182 @@
+#!/mnt/c/Users/teddy/Downloads/ВКР/venv/bin/python3
+"""
+==========================================================================
+pymtl3-net
+==========================================================================
+Frontend script for simulating, generating, and testing on-chip networks.
+
+Author: Yanghui Ou
+  Date: Sep 24, 2019
+
+"""
+import argparse
+import os
+import sys
+
+# Hack to add the top level directory to PYTHONPATH if this script was
+# called directly from the repo.
+if os.path.abspath(os.path.dirname(__file__)).split('/')[-1] == "script":
+  sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
+
+from ocnlib.sim import sim_utils
+from ocnlib.sim.sim_utils import *
+from pymtl3 import *
+
+
+#-------------------------------------------------------------------------
+# Global variables
+#-------------------------------------------------------------------------
+
+#=========================================================================
+# Multi-level command line parser
+#=========================================================================
+
+class PyOCN:
+
+  def __init__( self ):
+    parser = argparse.ArgumentParser(
+      description = 'Frontend script for PyOCN',
+      usage = '''\
+./pymtl3-net <command> [<args>]
+
+Available commands are:
+  help Display help message
+  sim  Simulate an OCN
+  gen  Generate an OCN
+  test Smoke test an OCN
+''')
+
+    parser.add_argument( 'command', help = 'Commands to run' )
+    self.parser = parser
+
+    # Exclude all args after the first arg
+
+    args = parser.parse_args( sys.argv[1:2] )
+    getattr( self, args.command.replace( '-', '_' ) )()
+
+  #-----------------------------------------------------------------------
+  # sim
+  #-----------------------------------------------------------------------
+
+  def sim( self ):
+    # TODO: list all available topologies
+    p = argparse.ArgumentParser(
+      description = 'Network simulation.',
+      usage = '''\
+./pymtl3-net sim <topology> [<flags>]'
+
+Available topologies:
+  ring   Ring network.
+  mesh   Mesh network.
+  cmesh  Concentrated mesh network.
+  torus  Torus network.
+  bfly   Butterfly network.
+''' )
+    p.add_argument( 'topology' )
+
+    topo = p.parse_args( sys.argv[2:3] ).topology
+
+    # Argument parser specific to a network
+    np = mk_net_arg_parser( topo )
+    np.add_argument( '-v', '--verbose',  action='store_true', help='Run in verbose mode.' )
+    np.add_argument( '-s', '--trace',    action='store_true', help='Show line trace.'    )
+    np.add_argument(       '--cl',       action='store_true', help='Run cycle level model instead of RTL.' )
+    np.add_argument(       '--dump-vcd', action='store_true', help='Dump out waveform in vcd format.' )
+    np.add_argument(       '--injection-rate', type=int, default=10, help='Injection rate in percentage. Default is 10.', metavar='' )
+    np.add_argument(       '--pattern', type=str, default='urandom', help='Traffic pattern. Default is urandom.',  metavar='' )
+    np.add_argument(       '--warmup-ncycles',  type=int, default=1000, help='Number of cycles for warmup.',  metavar='' )
+    np.add_argument(       '--measure-npackets', type=int, default=100, help='Number of packets for measuring.',  metavar='' )
+    np.add_argument(       '--timeout-ncycles', type=int, default=4000, help='Number of packets for measuring.',  metavar='' )
+    np.add_argument(       '--sweep',      action='store_true', help='Run in sweep mode.' )
+    np.add_argument(       '--sweep-step', type=int, default=10, help='Injection rate step for sweep mode.',  metavar='' )
+    np.add_argument(       '--sweep-thresh', type=float, default=100.0, help='Threshold for average latency in sweep mode.',  metavar='' )
+    opts = np.parse_args( sys.argv[3:] )
+
+    sim_utils.verbose = opts.verbose
+
+    # Simulate
+    # TODO: Sweep, elapsed time
+
+    if not opts.sweep:
+      result = net_simulate( topo, opts )
+
+      # Report stats
+      print()
+      result.print_result()
+
+    else:
+      net_simulate_sweep( topo, opts )
+
+  #-----------------------------------------------------------------------
+  # gen
+  #-----------------------------------------------------------------------
+
+  def gen( self ):
+    p = argparse.ArgumentParser(
+      description = 'Verilog generation.',
+      usage = '''\
+./pymtl3-net gen <topology> [<flags>]'
+
+Available topologies:
+  ring   Ring network.
+  mesh   Mesh network.
+  cmesh  Concentrated mesh network.
+  torus  Torus network.
+  bfly   Butterfly network.
+''' )
+    p.add_argument( 'topology' )
+    topo = p.parse_args( sys.argv[2:3] ).topology
+
+    np = mk_net_arg_parser( topo )
+    np.add_argument( '-v', '--verbose', action='store_true', help='Run in verbose mode.' )
+    opts = np.parse_args( sys.argv[3:] )
+
+    sim_utils.verbose = opts.verbose
+
+    gen_verilog( topo, opts )
+
+  #-----------------------------------------------------------------------
+  # test
+  #-----------------------------------------------------------------------
+
+  def test( self ):
+    p = argparse.ArgumentParser(
+      description = 'Smoke test generated network.',
+      usage = '''\
+./pymtl3-net test <topology> [<flags>]'
+
+Available topologies:
+  ring   Ring network.
+  mesh   Mesh network.
+  cmesh  Concentrated mesh network.
+  torus  Torus network.
+  bfly   Butterfly network.
+''' )
+    p.add_argument( 'topology' )
+    topo = p.parse_args( sys.argv[2:3] ).topology
+
+    np = mk_net_arg_parser( topo )
+    np.add_argument( '-v', '--verbose', action='store_true', help='Run in verbose mode.' )
+    np.add_argument( '-s', '--trace',    action='store_true', help='Show line trace.'    )
+    np.add_argument(       '--dump-vcd', action='store_true', help='Dump out waveform in vcd format.' )
+    np.add_argument(       '--cl',       action='store_true', help='Run cycle level model instead of RTL.' )
+
+    opts = np.parse_args( sys.argv[3:] )
+
+    sim_utils.verbose = opts.verbose
+
+    smoke_test( topo, opts )
+
+  #-----------------------------------------------------------------------
+  # help
+  #-----------------------------------------------------------------------
+
+  def help( self ):
+    self.parser.print_help()
+
+#=========================================================================
+# main
+#=========================================================================
+
+if __name__ == '__main__':
+  PyOCN()
