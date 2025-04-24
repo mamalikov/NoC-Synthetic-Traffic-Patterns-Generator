@@ -1,0 +1,1 @@
+python3 script/pymtl3-net sim mesh --ncols 4 --nrows 4 --pattern opposite

@@ -1,0 +1,3 @@
+[submodule "noxim"]
+	path = noxim
+	url = https://github.com/davidepatti/noxim.git

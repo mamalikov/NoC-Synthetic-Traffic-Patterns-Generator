@@ -25,7 +25,7 @@ def arrow(startNum, endNum, cols, ax):
 def uniform(src, n):
     dst = src
     while dst == src:
-        dst = random.randint(0, n-1)
+        dst = random.randint(0, n - 1)
     # print(
     #     f"Random uniform pattern. \nCores count: {n}. Source: {bin(src)}, Destination: {bin(dst)}\n"
     # )
@@ -223,11 +223,20 @@ def generatePacketsTimed(
 
 
 def generatePacketsPairs(
-    pattern, N, count, hotspot=None, direction="in", outfilename="result/generation.txt"
+    pattern,
+    N,
+    count,
+    hotspot=None,
+    direction="in",
+    outfilename="result/generation.txt",
+    random_order=True,
 ):
     res = ""
     for i in range(count):
-        src = random.randint(0, N - 1)
+        if random_order:
+            src = random.randint(0, N - 1)
+        else:
+            src = i % N
         if hotspot is None:
             dst = pattern(src, N)
             if dst != -1:
@@ -242,17 +251,25 @@ def generatePacketsPairs(
 
 
 # Размеры сети
-rows, cols = 8, 8
+rows, cols = 4, 4
 # generatePacketsTimed(tornado, rows * cols, 200, distribution="normal")
 # Рисуем трафик
 
 # generatePacketsTimed(tornado, rows*cols, count=100, distribution='poisson', lam=0.6)
-for i in range(501, 701):
+# uniform, bitcomplement, bitreverse, bitrotation, shuffle, transpose, tornado, neighbor
+pattern = "uniform"
+for i in range(16, 321):
     generatePacketsPairs(
-        shuffle,
+        uniform,
         rows * cols,
         i,
-        outfilename=f"Testing/patterns/noxim/all/shuffle-8x8_n{i}.txt",
+        outfilename=f"Testing/patterns/noxim/gen_order_testing/{pattern}-{rows}x{cols}-random-n{i}.txt",
     )
-
+    generatePacketsPairs(
+        uniform,
+        rows * cols,
+        i,
+        outfilename=f"Testing/patterns/noxim/gen_order_testing/{pattern}-{rows}x{cols}-ordered-n{i}.txt",
+        random_order=False,
+    )
 # graph(rows, cols, pattern=bitReverse, label="Bit-Reverse Pattern")
