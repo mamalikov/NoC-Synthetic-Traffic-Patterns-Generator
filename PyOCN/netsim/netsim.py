@@ -67,6 +67,7 @@ from random import randint, seed
 
 from os import path
 sys.path.append(path.join(path.dirname(__file__), '../pymtl3_net'))
+sys.path.append(path.join(path.dirname(__file__), '../../'))
 
 from bflynet.BflyNetworkRTL import BflyNetworkRTL
 from cmeshnet.CMeshNetworkRTL import CMeshNetworkRTL
@@ -78,6 +79,8 @@ from pymtl3 import *
 from pymtl3.stdlib.test_utils import TestVectorSimulator
 from ringnet.RingNetworkRTL import RingNetworkRTL
 from torusnet.TorusNetworkRTL import TorusNetworkRTL
+
+from patterns import uniform, bitReverse, bitComplement, bitRotation, shuffle, transpose, tornado, neighbor
 
 sim_dir = os.path.dirname( os.path.abspath( __file__ ) )
 while sim_dir:
@@ -350,16 +353,21 @@ def simulate( opts, injection_rate, pattern, drain_limit, dump_vcd, trace, verbo
 
         # traffic pattern based dest selection
         if   pattern == "urandom":
-          dest = randint( 0, num_nodes-1 )
-        elif pattern == "partition2":
-          dest = ( randint( 0, num_nodes-1 ) ) & (num_nodes//2-1) |\
-                 ( i & (num_nodes//2) )
-        elif pattern == "opposite":
-          dest = ( i + 2 ) % num_nodes
+          dest = uniform(i, num_nodes)
+        elif pattern == "bitReverse":
+          dest = bitReverse(i, num_nodes)
+        elif pattern == "bitComplement":
+          dest = bitComplement(i, num_nodes)
+        elif pattern == "bitRotation":
+          dest = bitRotation(i, num_nodes)
+        elif pattern == "shuffle":
+          dest = shuffle(i, num_nodes)
+        elif pattern == "transpose":
+          dest = transpose(i, num_nodes)
+        elif pattern == "tornado":
+          dest = tornado(i, num_nodes)
         elif pattern == "neighbor":
-          dest = ( i + 1 ) % num_nodes
-        elif pattern == "complement":
-          dest = i ^ (num_nodes-1)
+          dest = neighbor(i, num_nodes)
 
         # inject packet past the warmup period
 
