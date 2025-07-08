@@ -138,9 +138,9 @@ for y, label in zip(y_arr, labels):
     x_mx.append(X)
     y_mx.append(Y)
     if label == "random":
-        plt.plot(X, Y, label="Случайный отправитель")
+        plt.plot(X, Y, label="Random selection")
     else:
-        plt.plot(X, Y, label="Отправители по порядку")
+        plt.plot(X, Y, label="Ordered selection")
 
 for i in range(len(y_mx[0])):
     if y_mx[0][i] >= y_mx[1][i]:
@@ -183,10 +183,10 @@ print(mx_x, mx_y)
 
 plt.legend()
 plt.xticks([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-plt.yscale("log", base=10)
-plt.title(f"Зависимость задержки от порядка генерации пакетов\nТрафик: {pattern}")
-plt.xlabel("Скорость генерации пакетов (флит/цикл)")
-plt.ylabel("Средняя задержка (циклы)")
+# plt.yscale("log", base=10)
+plt.title(f"Dependence of latency on the packet generation order\nTraffic pattern: {pattern}")
+plt.xlabel("Generation speed (flit/cycle)")
+plt.ylabel("Average latency (cycles)")
 plt.grid(True)
 
 # arrowprops = {
@@ -211,7 +211,7 @@ plt.annotate(
 plt.scatter(mx_x, mx_y, color="red", s=15, marker="o")
 # # plt.scatter(mx_x_2, mx_y_2, color="red", s=15, marker="o")
 plt.yticks(list(plt.yticks()[0][:-2]) + [max(max(y_mx[0]), max(y_mx[1]))])
-plt.ylim(120)
+plt.ylim(-50)
 plt.show()
 # res = {}
 # for file in os.listdir("Testing/results/noxim/gen_order_testing"):
