@@ -1,4 +1,4 @@
-# NoCSTG — NoC Synthetic Traffic Patterns Generator
+# NoCSTG – NoC Synthetic Traffic Generator
 
 Python library for generating canonical synthetic traffic patterns for Networks-on-Chip (NoCs), with integration hooks used in Noxim and PyOCN experiments.
 
