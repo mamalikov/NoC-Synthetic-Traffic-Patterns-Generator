@@ -1,0 +1,33 @@
+
+        SystemC 2.3.1-Accellera --- Nov 18 2025 12:13:34
+        Copyright (c) 1996-2014 by all Contributors,
+        ALL RIGHTS RESERVED
+	--------------------------------------------
+		Noxim - the NoC Simulator
+		(C) University of Catania
+	--------------------------------------------
+Catania V., Mineo A., Monteleone S., Palesi M., and Patti D. (2016) Cycle-Accurate Network on Chip Simulation with Noxim. ACM Trans. Model. Comput. Simul. 27, 1, Article 4 (August 2016), 25 pages. DOI: https://doi.org/10.1145/2953878
+
+
+Loading configuration from file "/mnt/c/Users/teddy/Downloads/ВКР/Бакалавриат/Код/noxim/bin/../config_examples/64_mesh.yaml"... Done
+Loading power configurations from file "/mnt/c/Users/teddy/Downloads/ВКР/Бакалавриат/Код/noxim/bin/power.yaml"... Done
+Reset for 1000 cycles...  done! 
+ Now running for 10000 cycles...
+Noxim simulation completed. (11000 cycles executed)
+
+% Total received packets: 6391
+% Total received flits: 51147
+% Received/Ideal flits Ratio: 1.10996
+% Average wireless utilization: 0
+% Global average delay (cycles): 370.403
+% Average packet age at arrival (cycles): 370.403
+% Max delay (cycles): 8670
+% Network throughput (flits/cycle): 5.683
+% Average IP throughput (flits/cycle/IP): 0.0887969
+% Average router buffer occupancy (flits): 0.682327
+% Average queue waiting time (cycles/flit): 7.56059
+% Average source queue waiting time (cycles/packet): 320.735
+% Average physical channel utilization (%): 13.1424
+% Total energy (J): 9.02319e-06
+% 	Dynamic energy (J): 1.12219e-06
+% 	Static energy (J): 7.901e-06

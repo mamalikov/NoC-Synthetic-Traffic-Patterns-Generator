@@ -19,7 +19,9 @@ from dataclasses import dataclass
 from random import randint, seed
 
 from os import path
-sys.path.append(path.join(path.dirname(__file__), '../../../../..'))
+_repo_root = path.abspath(path.join(path.dirname(__file__), '..', '..', '..', '..'))
+if _repo_root not in sys.path:
+  sys.path.insert(0, _repo_root)
 from patterns import bitComplement, bitReverse, bitRotation, shuffle, tornado, transpose, neighbor, uniform
 
 # Hacky way to add pymtl3-net to path
@@ -47,6 +49,7 @@ seed( 0xfaceb00c )
 #-------------------------------------------------------------------------
 
 verbose = False
+write_result_json = True
 
 #-------------------------------------------------------------------------
 # convenience variable
@@ -210,7 +213,7 @@ def _mk_bfly_net( opts ):
 
 def _gen_dst_id( pattern, nports, src_id ):
   if pattern == 'urandom':
-    return randint( 0, nports-1 )
+    return uniform(src_id, nports)
   elif pattern == 'bit-complement':
     return bitComplement(src_id, nports)
   elif pattern == 'bit-reverse':
@@ -238,13 +241,16 @@ def _gen_mesh_pkt( opts, timestamp, src_id ):
   payload_nbits = opts.channel_bw
   nports = ncols * nrows
 
+  dst_id = _gen_dst_id( opts.pattern, nports, src_id )
+  if dst_id is None or dst_id < 0:
+    return None
+
   x_type = mk_bits( clog2( opts.ncols ) )
   y_type = mk_bits( clog2( opts.nrows ) )
 
   pkt = mk_mesh_pkt( ncols, nrows, vc=1, payload_nbits=payload_nbits )()
   pkt.payload = timestamp
 
-  dst_id    = _gen_dst_id( opts.pattern, nports, src_id )
   pkt.src_x = x_type( src_id %  ncols )
   pkt.src_y = y_type( src_id // ncols )
   pkt.dst_x = x_type( dst_id %  ncols )
@@ -260,12 +266,15 @@ def _gen_ring_pkt( opts, timestamp, src_id ):
   payload_nbits = opts.channel_bw
   nports = opts.nterminals
 
+  dst_id = _gen_dst_id( opts.pattern, nports, src_id )
+  if dst_id is None or dst_id < 0:
+    return None
+
   id_type = mk_bits( clog2( nports ) )
 
   pkt = mk_ring_pkt( nports, vc=2, payload_nbits=payload_nbits )()
   pkt.payload = timestamp
 
-  dst_id  = _gen_dst_id( opts.pattern, nports, src_id )
   pkt.src = id_type( src_id )
   pkt.dst = id_type( dst_id )
 
@@ -281,13 +290,16 @@ def _gen_torus_pkt( opts, timestamp, src_id ):
   payload_nbits = opts.channel_bw
   nports = ncols * nrows
 
+  dst_id = _gen_dst_id( opts.pattern, nports, src_id )
+  if dst_id is None or dst_id < 0:
+    return None
+
   x_type = mk_bits( clog2( opts.ncols ) )
   y_type = mk_bits( clog2( opts.nrows ) )
 
   pkt = mk_mesh_pkt( ncols, nrows, vc=1, payload_nbits=payload_nbits )()
   pkt.payload = timestamp
 
-  dst_id    = _gen_dst_id( opts.pattern, nports, src_id )
   pkt.src_x = x_type( src_id %  ncols )
   pkt.src_y = y_type( src_id // ncols )
   pkt.dst_x = x_type( dst_id %  ncols )
@@ -307,6 +319,10 @@ def _gen_cmesh_pkt( opts, timestamp, src_id ):
   payload_nbits   = opts.channel_bw
   nports          = ncols * nrows * nterminals_each
 
+  dst_id = _gen_dst_id( opts.pattern, nports, src_id )
+  if dst_id is None or dst_id < 0:
+    return None
+
   router_ninports  = opts.nterminals_each + 4
   router_noutports = opts.nterminals_each + 4
 
@@ -318,7 +334,6 @@ def _gen_cmesh_pkt( opts, timestamp, src_id ):
                       vc=1, payload_nbits=payload_nbits )()
   pkt.payload = timestamp
 
-  dst_id      = _gen_dst_id( opts.pattern, nports, src_id )
   pkt.src_x   = x_type( ( src_id//nterminals_each ) %  ncols )
   pkt.src_y   = y_type( ( src_id//nterminals_each ) // ncols )
   pkt.dst_x   = x_type( ( dst_id//nterminals_each ) %  ncols )
@@ -337,12 +352,15 @@ def _gen_bfly_pkt( opts, timestamp, src_id ):
   payload_nbits = opts.channel_bw
   nports        = opts.kary ** opts.nfly
 
+  dst_id = _gen_dst_id( opts.pattern, nports, src_id )
+  if dst_id is None or dst_id < 0:
+    return None
+
   id_type = mk_bits( clog2( nports ) )
 
   pkt = mk_bfly_pkt( kary, nfly, vc=1, payload_nbits=payload_nbits )()
   pkt.payload = timestamp
 
-  dst_id  = _gen_dst_id( opts.pattern, nports, src_id )
   pkt.src = id_type( src_id )
   pkt.dst = id_type( dst_id )
 
@@ -433,18 +451,20 @@ class SimResult:
   timeout        : bool  = False
 
   def print_result( self ):
-    res = {}
-    with open('result.json', "r") as fh:
-      res = json.load(fh)
-    res["data"][-1]['injection rate'] = self.injection_rate
-    res["data"][-1]['average latency'] = self.avg_latency
-    res["data"][-1]['simulated cycles'] = self.sim_ncycles
-    res["data"][-1]['packets generated'] = self.total_generated
-    res["data"][-1]['packets received'] = self.total_received
-    res["data"][-1]['#measure packet'] = self.mpkt_received
-    res["data"][-1]['elapsed time'] = self.elapsed_time
-    with open('result.json', "w") as fh:
-      json.dump(res, fh, ensure_ascii=False, indent=4)
+    if write_result_json and path.exists('result.json'):
+      res = {}
+      with open('result.json', "r") as fh:
+        res = json.load(fh)
+      if res.get("data"):
+        res["data"][-1]['injection rate'] = self.injection_rate
+        res["data"][-1]['average latency'] = self.avg_latency
+        res["data"][-1]['simulated cycles'] = self.sim_ncycles
+        res["data"][-1]['packets generated'] = self.total_generated
+        res["data"][-1]['packets received'] = self.total_received
+        res["data"][-1]['#measure packet'] = self.mpkt_received
+        res["data"][-1]['elapsed time'] = self.elapsed_time
+        with open('result.json', "w") as fh:
+          json.dump(res, fh, ensure_ascii=False, indent=4)
     print( f'injection_rate    : {self.injection_rate} %' )
     print( f'average latency   : {self.avg_latency:.2f}'   )
     print( f'simulated cycles  : {self.sim_ncycles}'       )
@@ -469,13 +489,19 @@ def net_simulate( topo, opts ):
   nports = get_nports( topo, opts )
   p_type = mk_bits( opts.channel_bw )
 
-  res = {}
-  with open('result.json', "r") as fh:
-    res = json.load(fh)
-  res["data"].append({"topology": topo, "size": nports, "traffic": opts.pattern})
-  with open('result.json', "w") as fh:
-    json.dump(res, fh, ensure_ascii=False, indent=4)
-  print(f"-----------------------------------------\nSimulating {topo} network with {nports} ports. Traffic: {opts.pattern}")
+  if write_result_json:
+    if not path.exists('result.json'):
+      with open('result.json', 'w') as fh:
+        json.dump({"data": []}, fh)
+    res = {}
+    with open('result.json', "r") as fh:
+      res = json.load(fh)
+    res["data"].append({"topology": topo, "size": nports, "traffic": opts.pattern})
+    with open('result.json', "w") as fh:
+      json.dump(res, fh, ensure_ascii=False, indent=4)
+    print(f"Simulating {topo} network with {nports} ports. Traffic: {opts.pattern}")
+  else:
+    vprint(f"Simulating {topo} network with {nports} ports. Traffic: {opts.pattern}")
 
   # Instantiate network instance
   vprint( f' - instantiating {topo} with {nports} terminals')
@@ -502,8 +528,6 @@ def net_simulate( topo, opts ):
   warmup_ncycles   = opts.warmup_ncycles
   measure_npackets = opts.measure_npackets * 2
   timeout_ncycles  = opts.timeout_ncycles
-  if timeout_ncycles == 4000:
-    timeout_ncycles = 3000
 
 
   vprint( f' - simulation starts' )
@@ -541,14 +565,16 @@ def net_simulate( topo, opts ):
         # Sample phase - inject measure packet
         elif mpkt_generated < measure_npackets:
           pkt = _pkt_gen_dict[ topo ]( opts, b32(ncycles), i )
-          mpkt_generated += 1
+          if pkt is not None:
+            mpkt_generated += 1
 
         # Drain phase - just inject
         else:
           pkt = _pkt_gen_dict[ topo ]( opts, p_type(0), i )
 
-        total_generated += 1
-        src_q[i].append( pkt )
+        if pkt is not None:
+          total_generated += 1
+          src_q[i].append( pkt )
 
       # Inject packets from source queue to network
       if len( src_q[i] ) > 0 and net.recv[i].rdy:
@@ -586,7 +612,7 @@ def net_simulate( topo, opts ):
         elapsed_time = time.monotonic() - start_time
         result = SimResult()
         result.injection_rate  = injection_rate
-        result.avg_latency     = float( total_latency ) / mpkt_received
+        result.avg_latency     = (float( total_latency ) / mpkt_received) if mpkt_received else float('nan')
         result.total_generated = total_generated
         result.mpkt_received   = mpkt_received
         result.total_received  = total_received
